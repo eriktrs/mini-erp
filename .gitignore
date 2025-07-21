@@ -1,0 +1,18 @@
+# CodeIgniter
+application/cache/*
+application/logs/*
+application/config/database.php
+
+# Sistema
+vendor/
+node_modules/
+.env
+*.zip
+
+# Docker volumes e configs locais
+db_data/
+docker/php/000-default.conf
+
+# IDEs
+.vscode/
+.idea/
