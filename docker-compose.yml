@@ -1,28 +1,34 @@
 services:
-  app:
-    build: ./docker/php
-    container_name: ci3-app
-    working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
+  backend:
+    build:
+      context: .
+      dockerfile: docker/apache-php.dockerfile
+    container_name: ci3-backend
     ports:
-      - "8080:80"
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/vhost.conf:/etc/apache2/sites-enabled/000-default.conf
+    networks:
+      - erpnet
     depends_on:
-      - db
+      - frontend
 
-  db:
-    image: mysql:5.7
-    container_name: ci3-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: mini_erp
-      MYSQL_USER: dev
-      MYSQL_PASSWORD: dev
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/node.dockerfile
+    container_name: vue-frontend
     ports:
-      - "3306:3306"
+      - "5173:5173"
     volumes:
-      - db_data:/var/lib/mysql
+      - ./frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    networks:
+      - erpnet
 
-volumes:
-  db_data:
+networks:
+  erpnet:
+    driver: bridge
