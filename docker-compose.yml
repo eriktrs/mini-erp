@@ -13,6 +13,7 @@ services:
       - erpnet
     depends_on:
       - frontend
+      - db
 
   frontend:
     build:
@@ -29,6 +30,26 @@ services:
     networks:
       - erpnet
 
+  db:
+    image: mysql:8.0
+    container_name: erp-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: erp
+      MYSQL_USER: erpuser
+      MYSQL_PASSWORD: erppass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/init:/docker-entrypoint-initdb.d
+    networks:
+      - erpnet
+
 networks:
   erpnet:
     driver: bridge
+
+volumes:
+  db_data:
