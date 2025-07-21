@@ -1,18 +1,52 @@
+# -----------------------------
 # CodeIgniter
+# -----------------------------
 application/cache/*
 application/logs/*
 application/config/database.php
 
-# Sistema
+# Composer & PHP
 vendor/
-node_modules/
 .env
 *.zip
 
-# Docker volumes e configs locais
+# -----------------------------
+# Node.js / Vue.js / Vite
+# -----------------------------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -----------------------------
+# Docker
+# -----------------------------
 db_data/
 docker/php/000-default.conf
+docker/apache-php.dockerfile
+docker/node.dockerfile
+docker/vhost.conf
 
-# IDEs
+# -----------------------------
+# IDEs & OS
+# -----------------------------
 .vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
