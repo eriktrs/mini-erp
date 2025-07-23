@@ -1,5 +1,5 @@
 # -----------------------------
-# CodeIgniter
+# PHP / CodeIgniter
 # -----------------------------
 application/cache/*
 application/logs/*
@@ -19,8 +19,14 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
 
+# Local environment files
+*.local
+
+# -----------------------------
 # Log files
+# -----------------------------
 *.log
+logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -37,7 +43,7 @@ docker/node.dockerfile
 docker/vhost.conf
 
 # -----------------------------
-# IDEs & OS
+# IDEs & OS files
 # -----------------------------
 .vscode/
 .vscode/*
