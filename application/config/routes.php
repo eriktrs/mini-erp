@@ -49,6 +49,59 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
+
+/*
+|--------------------------------------------------------------------------
+| Default Controller
+|--------------------------------------------------------------------------
+*/
 $route['default_controller'] = 'welcome';
+
+/*
+|--------------------------------------------------------------------------
+| Product Routes
+|--------------------------------------------------------------------------
+*/
+$route['products'] = 'ProductController/index';                     // List all products
+$route['products/create'] = 'ProductController/create';             // Show product creation form
+$route['products/store'] = 'ProductController/store';               // Handle new product creation
+$route['products/edit/(:num)'] = 'ProductController/edit/$1';       // Show edit form
+$route['products/update/(:num)'] = 'ProductController/update/$1';   // Handle product update
+$route['products/delete/(:num)'] = 'ProductController/delete/$1';   // Delete a product
+
+/*
+|--------------------------------------------------------------------------
+| Coupon Routes
+|--------------------------------------------------------------------------
+*/
+$route['coupons'] = 'CouponController/index';                       // List coupons
+$route['coupons/create'] = 'CouponController/create';               // Show coupon creation form
+$route['coupons/store'] = 'CouponController/store';                 // Handle coupon creation
+$route['coupons/edit/(:num)'] = 'CouponController/edit/$1';         // Show edit coupon form
+$route['coupons/update/(:num)'] = 'CouponController/update/$1';     // Update coupon
+$route['coupons/delete/(:num)'] = 'CouponController/delete/$1';     // Delete coupon
+
+/*
+|--------------------------------------------------------------------------
+| Order Routes
+|--------------------------------------------------------------------------
+*/
+$route['order/cart'] = 'OrderController/cart';                      // View cart
+$route['order/add'] = 'OrderController/add_to_cart';                // Add product to cart
+$route['order/checkout'] = 'OrderController/checkout';              // Checkout page
+$route['order/place'] = 'OrderController/place_order';              // Place order
+
+/*
+|--------------------------------------------------------------------------
+| Webhook Routes
+|--------------------------------------------------------------------------
+*/
+$route['webhook/order-status'] = 'WebhookController/update_order_status'; // Webhook for updating order status
+
+/*
+|--------------------------------------------------------------------------
+| 404 and URI Config
+|--------------------------------------------------------------------------
+*/
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
