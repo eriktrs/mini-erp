@@ -12,12 +12,12 @@ class CouponController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Coupon_model');
-        $this->load->helper(['url', 'api']); // Use custom API helper
+        $this->load->helper(['url', 'api']);
     }
 
     /**
      * GET /coupons
-     * Retrieve all available coupons.
+     * List all available coupons.
      */
     public function index()
     {
@@ -31,7 +31,7 @@ class CouponController extends CI_Controller
 
     /**
      * GET /coupons/{id}
-     * Retrieve a specific coupon by ID.
+     * Retrieve a coupon by ID.
      */
     public function show($id)
     {
@@ -49,13 +49,6 @@ class CouponController extends CI_Controller
     /**
      * POST /coupons
      * Create a new coupon.
-     * Expected JSON:
-     * {
-     *   "code": "DISCOUNT10",
-     *   "value": 10.00,
-     *   "valid_until": "2025-12-31",
-     *   "minimum_value": 50.00
-     * }
      */
     public function store()
     {
@@ -66,6 +59,11 @@ class CouponController extends CI_Controller
         $input = json_decode($this->input->raw_input_stream, true);
         if (!$this->validateCoupon($input)) {
             return respondError($this->output, 'Invalid coupon data', 400);
+        }
+
+        // Check if coupon code already exists
+        if ($this->Coupon_model->existsByCode($input['code'])) {
+            return respondError($this->output, 'Coupon code already exists', 409);
         }
 
         $data = [
@@ -88,7 +86,7 @@ class CouponController extends CI_Controller
 
     /**
      * PUT /coupons/{id}
-     * Update an existing coupon.
+     * Update a coupon by ID.
      */
     public function update($id)
     {
@@ -118,7 +116,7 @@ class CouponController extends CI_Controller
 
     /**
      * DELETE /coupons/{id}
-     * Delete a coupon.
+     * Remove a coupon by ID.
      */
     public function delete($id)
     {
