@@ -2,9 +2,10 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Order Controller
+ * OrderController (REST API)
  *
  * Handles cart operations, order creation, coupon application, and shipping calculation.
+ * Returns responses in JSON format following REST API best practices.
  */
 class OrderController extends CI_Controller
 {
@@ -12,41 +13,46 @@ class OrderController extends CI_Controller
     {
         parent::__construct();
         $this->load->model(['Order_model', 'Product_model', 'Coupon_model']);
-        $this->load->helper(['url', 'form']);
-        $this->load->library(['session', 'form_validation']);
+        $this->load->helper(['url', 'api']); // Custom API helper
+        $this->load->library(['session']);
     }
 
     /**
+     * GET /orders/cart
      * Show current cart items.
      */
     public function cart()
     {
-        $data['cart'] = $this->session->userdata('cart') ?? [];
-        $data['subtotal'] = $this->calculateSubtotal();
-        $data['shipping'] = $this->calculateShipping($data['subtotal']);
-        $data['total'] = $data['subtotal'] + $data['shipping'];
+        $cart = $this->session->userdata('cart') ?? [];
+        $subtotal = $this->calculateSubtotal();
+        $shipping = $this->calculateShipping($subtotal);
+        $total = $subtotal + $shipping;
 
-        $this->load->view('orders/cart', $data);
+        return respondSuccess($this->output, [
+            'cart' => $cart,
+            'subtotal' => $subtotal,
+            'shipping' => $shipping,
+            'total' => $total
+        ]);
     }
 
     /**
+     * POST /orders/cart
      * Add product to cart.
      */
     public function add_to_cart()
     {
-        $productId = (int) $this->input->post('product_id');
-        $variationId = (int) $this->input->post('variation_id');
-        $quantity = (int) $this->input->post('quantity');
+        $input = json_decode($this->input->raw_input_stream, true);
+        $productId = (int) ($input['product_id'] ?? 0);
+        $variationId = (int) ($input['variation_id'] ?? 0);
+        $quantity = (int) ($input['quantity'] ?? 1);
 
         $product = $this->Product_model->getById($productId);
         if (!$product) {
-            $this->session->set_flashdata('error', 'Product not found.');
-            redirect('orders/cart');
-            return;
+            return respondError($this->output, 'Product not found', 404);
         }
 
         $cart = $this->session->userdata('cart') ?? [];
-
         $cart[] = [
             'product_id' => $productId,
             'variation_id' => $variationId,
@@ -56,70 +62,67 @@ class OrderController extends CI_Controller
         ];
 
         $this->session->set_userdata('cart', $cart);
-        $this->session->set_flashdata('success', 'Product added to cart.');
-        redirect('orders/cart');
+
+        return respondSuccess($this->output, ['message' => 'Product added to cart', 'cart' => $cart], 201);
     }
 
     /**
-     * Remove item from cart.
+     * DELETE /orders/cart/{index}
+     * Remove item from cart by index.
      */
     public function remove_from_cart($index)
     {
         $cart = $this->session->userdata('cart') ?? [];
-        if (isset($cart[$index])) {
-            unset($cart[$index]);
-            $this->session->set_userdata('cart', array_values($cart));
-            $this->session->set_flashdata('success', 'Item removed from cart.');
+
+        if (!isset($cart[$index])) {
+            return respondError($this->output, 'Item not found in cart', 404);
         }
-        redirect('orders/cart');
+
+        unset($cart[$index]);
+        $this->session->set_userdata('cart', array_values($cart));
+
+        return respondSuccess($this->output, ['message' => 'Item removed from cart', 'cart' => $cart]);
     }
 
     /**
+     * POST /orders/coupon
      * Apply coupon to cart.
      */
     public function apply_coupon()
     {
-        $code = trim($this->input->post('coupon_code'));
-        $coupon = $this->Coupon_model->getByCode($code);
+        $input = json_decode($this->input->raw_input_stream, true);
+        $code = trim($input['coupon_code'] ?? '');
 
+        $coupon = $this->Coupon_model->getByCode($code);
         if (!$coupon) {
-            $this->session->set_flashdata('error', 'Invalid coupon code.');
-            redirect('orders/cart');
-            return;
+            return respondError($this->output, 'Invalid coupon code', 400);
         }
 
         $subtotal = $this->calculateSubtotal();
-
         if ($subtotal < $coupon['minimum_value']) {
-            $this->session->set_flashdata('error', 'Subtotal does not meet coupon requirements.');
-            redirect('orders/cart');
-            return;
+            return respondError($this->output, 'Subtotal does not meet coupon requirements', 400);
         }
 
         $this->session->set_userdata('coupon', $coupon);
-        $this->session->set_flashdata('success', 'Coupon applied successfully.');
-        redirect('orders/cart');
+
+        return respondSuccess($this->output, ['message' => 'Coupon applied successfully', 'coupon' => $coupon]);
     }
 
     /**
+     * POST /orders/checkout
      * Checkout and create order.
      */
     public function checkout()
     {
+        $input = json_decode($this->input->raw_input_stream, true);
         $cart = $this->session->userdata('cart') ?? [];
+
         if (empty($cart)) {
-            $this->session->set_flashdata('error', 'Cart is empty.');
-            redirect('orders/cart');
-            return;
+            return respondError($this->output, 'Cart is empty', 400);
         }
 
-        $this->form_validation->set_rules('postal_code', 'Postal Code', 'required');
-        $this->form_validation->set_rules('address', 'Address', 'required');
-
-        if ($this->form_validation->run() === FALSE) {
-            $this->session->set_flashdata('error', 'Please provide valid address details.');
-            redirect('orders/cart');
-            return;
+        if (empty($input['postal_code']) || empty($input['address'])) {
+            return respondError($this->output, 'Please provide valid address details', 400);
         }
 
         $subtotal = $this->calculateSubtotal();
@@ -129,39 +132,37 @@ class OrderController extends CI_Controller
 
         $total = max(0, $subtotal + $shipping - $discount);
 
-        // Prepare order data
         $orderData = [
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
-            'postal_code' => $this->input->post('postal_code'),
-            'address' => $this->input->post('address'),
+            'postal_code' => $input['postal_code'],
+            'address' => $input['address'],
             'status' => 'pending'
         ];
 
         $orderId = $this->Order_model->create($orderData, $cart);
 
-        // Clear cart and coupon
         $this->session->unset_userdata(['cart', 'coupon']);
 
-        $this->session->set_flashdata('success', 'Order placed successfully.');
-        redirect('orders/details/' . $orderId);
+        return respondSuccess($this->output, [
+            'message' => 'Order placed successfully',
+            'order_id' => $orderId
+        ], 201);
     }
 
     /**
-     * Show order details.
+     * GET /orders/{id}
+     * Show order details by ID.
      */
     public function details($id)
     {
         $order = $this->Order_model->getById($id);
         if (!$order) {
-            $this->session->set_flashdata('error', 'Order not found.');
-            redirect('orders/cart');
-            return;
+            return respondError($this->output, 'Order not found', 404);
         }
 
-        $data['order'] = $order;
-        $this->load->view('orders/details', $data);
+        return respondSuccess($this->output, ['order' => $order]);
     }
 
     /**
@@ -170,13 +171,7 @@ class OrderController extends CI_Controller
     private function calculateSubtotal(): float
     {
         $cart = $this->session->userdata('cart') ?? [];
-        $subtotal = 0;
-
-        foreach ($cart as $item) {
-            $subtotal += $item['price'] * $item['quantity'];
-        }
-
-        return $subtotal;
+        return array_reduce($cart, fn($sum, $item) => $sum + ($item['price'] * $item['quantity']), 0);
     }
 
     /**
@@ -185,7 +180,7 @@ class OrderController extends CI_Controller
     private function calculateShipping(float $subtotal): float
     {
         if ($subtotal > 200) {
-            return 0.00; // Free shipping
+            return 0.00;
         } elseif ($subtotal >= 52 && $subtotal <= 166.59) {
             return 15.00;
         }
