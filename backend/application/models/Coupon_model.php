@@ -34,12 +34,12 @@ class Coupon_model extends CI_Model
     }
 
     /**
-     * Insert a new coupon.
+     * Create a new coupon.
      *
      * @param array $data
-     * @return int Inserted coupon ID
+     * @return int Created coupon ID
      */
-    public function insert($data)
+    public function create($data)
     {
         $this->db->insert($this->table, $data);
         return $this->db->insert_id();
