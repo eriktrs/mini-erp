@@ -2,141 +2,125 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Product Controller
- *
- * Handles CRUD operations for products including variations and stock.
+ * Product Controller (API REST)
  */
 class ProductController extends CI_Controller
 {
     public function __construct()
     {
         parent::__construct();
-        // Load required models
+        // Load models
         $this->load->model('Product_model');
-        $this->load->model('Variation_model');
-        $this->load->model('Stock_model');
-        // Load form and URL helpers
-        $this->load->helper(['url', 'form']);
-        // Load session library for flash messages
-        $this->load->library('session');
+        $this->load->helper('url');
     }
 
     /**
-     * Display list of all products.
+     * GET /products
+     * List all products as JSON.
      */
     public function index()
     {
-        $data['products'] = $this->Product_model->getAll();
-        $this->load->view('products/index', $data);
+        $products = $this->Product_model->getAll();
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_status_header(200)
+            ->set_output(json_encode(['status' => 'success', 'data' => $products]));
     }
 
     /**
-     * Show form to create a new product.
+     * GET /products/{id}
+     * Show single product by ID.
      */
-    public function create()
+    public function show($id)
     {
-        $this->load->view('products/create');
+        $product = $this->Product_model->getById($id);
+
+        if ($product) {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(200)
+                ->set_output(json_encode(['status' => 'success', 'data' => $product]));
+        } else {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(404)
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Product not found']));
+        }
     }
 
     /**
-     * Handle product creation and save to database.
+     * POST /products
+     * Create new product.
      */
     public function store()
     {
-        // Validate form data
-        $this->load->library('form_validation');
-        $this->form_validation->set_rules('name', 'Product Name', 'required');
-        $this->form_validation->set_rules('price', 'Price', 'required|numeric');
+        $input = json_decode($this->input->raw_input_stream, true);
 
-        if ($this->form_validation->run() === FALSE) {
-            $this->session->set_flashdata('error', 'Validation failed.');
-            redirect('products/create');
+        if (!isset($input['name']) || !isset($input['price'])) {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(400)
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
         }
 
-        // Prepare product data
-        $productData = [
-            'name'  => $this->input->post('name'),
-            'price' => $this->input->post('price'),
+        $data = [
+            'name'  => $input['name'],
+            'price' => $input['price'],
         ];
 
-        // Handle variations
-        $variations = $this->input->post('variations'); // Expect array of variations
-        $productData['variations'] = [];
+        $id = $this->Product_model->create($data);
 
-        if (!empty($variations) && is_array($variations)) {
-            foreach ($variations as $variation) {
-                $productData['variations'][] = [
-                    'name'      => $variation['name'],
-                    'quantity'  => $variation['quantity'],
-                ];
-            }
-        }
-
-        // Insert product and related data
-        $this->Product_model->create($productData);
-
-        $this->session->set_flashdata('success', 'Product created successfully!');
-        redirect('products');
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_status_header(201)
+            ->set_output(json_encode(['status' => 'success', 'message' => 'Product created', 'id' => $id]));
     }
 
     /**
-     * Show edit form for a product.
-     * 
-     * @param int $id Product ID
-     */
-    public function edit($id)
-    {
-        $data['product'] = $this->Product_model->getById($id);
-
-        if (!$data['product']) {
-            $this->session->set_flashdata('error', 'Product not found.');
-            redirect('products');
-        }
-
-        $this->load->view('products/edit', $data);
-    }
-
-    /**
-     * Update existing product and its variations.
-     * 
-     * @param int $id Product ID
+     * PUT /products/{id}
+     * Update product by ID.
      */
     public function update($id)
     {
-        $this->load->library('form_validation');
-        $this->form_validation->set_rules('name', 'Product Name', 'required');
-        $this->form_validation->set_rules('price', 'Price', 'required|numeric');
+        $input = json_decode($this->input->raw_input_stream, true);
 
-        if ($this->form_validation->run() === FALSE) {
-            $this->session->set_flashdata('error', 'Validation failed.');
-            redirect('products/edit/' . $id);
+        if (!isset($input['name']) || !isset($input['price'])) {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(400)
+                ->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
         }
 
-        $updateData = [
-            'name'  => $this->input->post('name'),
-            'price' => $this->input->post('price'),
-            'variations' => $this->input->post('variations'),
+        $data = [
+            'name'  => $input['name'],
+            'price' => $input['price'],
         ];
 
-        $this->Product_model->update($id, $updateData);
+        $updated = $this->Product_model->update($id, $data);
 
-        $this->session->set_flashdata('success', 'Product updated successfully!');
-        redirect('products');
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_status_header($updated ? 200 : 404)
+            ->set_output(json_encode([
+                'status' => $updated ? 'success' : 'error',
+                'message' => $updated ? 'Product updated' : 'Product not found'
+            ]));
     }
 
     /**
-     * Delete a product by ID.
-     * 
-     * @param int $id Product ID
+     * DELETE /products/{id}
+     * Delete product by ID.
      */
     public function delete($id)
     {
-        if ($this->Product_model->delete($id)) {
-            $this->session->set_flashdata('success', 'Product deleted successfully.');
-        } else {
-            $this->session->set_flashdata('error', 'Failed to delete product.');
-        }
+        $deleted = $this->Product_model->delete($id);
 
-        redirect('products');
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_status_header($deleted ? 200 : 404)
+            ->set_output(json_encode([
+                'status' => $deleted ? 'success' : 'error',
+                'message' => $deleted ? 'Product deleted' : 'Product not found'
+            ]));
     }
 }
