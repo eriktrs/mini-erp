@@ -59,44 +59,43 @@ $route['default_controller'] = 'welcome';
 
 /*
 |--------------------------------------------------------------------------
-| Product Routes
+| API Routes - Products
 |--------------------------------------------------------------------------
 */
-$route['products'] = 'ProductController/index';                     // List all products
-$route['products/create'] = 'ProductController/create';             // Show product creation form
-$route['products/store'] = 'ProductController/store';               // Handle new product creation
-$route['products/edit/(:num)'] = 'ProductController/edit/$1';       // Show edit form
-$route['products/update/(:num)'] = 'ProductController/update/$1';   // Handle product update
-$route['products/delete/(:num)'] = 'ProductController/delete/$1';   // Delete a product
+$route['products']['GET'] = 'ProductController/index';                  // List all products
+$route['products']['POST'] = 'ProductController/store';                 // Create product
+$route['products/(:num)']['GET'] = 'ProductController/show/$1';         // Get product by ID
+$route['products/(:num)']['PUT'] = 'ProductController/update/$1';       // Update product
+$route['products/(:num)']['DELETE'] = 'ProductController/delete/$1';    // Delete product
 
 /*
 |--------------------------------------------------------------------------
-| Coupon Routes
+| API Routes - Coupons
 |--------------------------------------------------------------------------
 */
-$route['coupons'] = 'CouponController/index';                       // List coupons
-$route['coupons/create'] = 'CouponController/create';               // Show coupon creation form
-$route['coupons/store'] = 'CouponController/store';                 // Handle coupon creation
-$route['coupons/edit/(:num)'] = 'CouponController/edit/$1';         // Show edit coupon form
-$route['coupons/update/(:num)'] = 'CouponController/update/$1';     // Update coupon
-$route['coupons/delete/(:num)'] = 'CouponController/delete/$1';     // Delete coupon
+$route['coupons']['GET'] = 'CouponController/index';                    // List coupons
+$route['coupons']['POST'] = 'CouponController/store';                   // Create coupon
+$route['coupons/(:num)']['GET'] = 'CouponController/show/$1';           // Show coupon
+$route['coupons/(:num)']['PUT'] = 'CouponController/update/$1';         // Update coupon
+$route['coupons/(:num)']['DELETE'] = 'CouponController/delete/$1';      // Delete coupon
 
 /*
 |--------------------------------------------------------------------------
-| Order Routes
+| API Routes - Orders
 |--------------------------------------------------------------------------
 */
-$route['order/cart'] = 'OrderController/cart';                      // View cart
-$route['order/add'] = 'OrderController/add_to_cart';                // Add product to cart
-$route['order/checkout'] = 'OrderController/checkout';              // Checkout page
-$route['order/place'] = 'OrderController/place_order';              // Place order
+$route['orders']['GET'] = 'OrderController/index';                      // List orders
+$route['orders']['POST'] = 'OrderController/store';                     // Create order
+$route['orders/(:num)']['GET'] = 'OrderController/show/$1';             // Get specific order
+$route['orders/(:num)']['PUT'] = 'OrderController/update/$1';           // Update order
+$route['orders/(:num)']['DELETE'] = 'OrderController/delete/$1';        // Delete order
 
 /*
 |--------------------------------------------------------------------------
 | Webhook Routes
 |--------------------------------------------------------------------------
 */
-$route['webhook/order-status'] = 'WebhookController/update_order_status'; // Webhook for updating order status
+$route['webhook/order-status']['POST'] = 'WebhookController/update_order_status';
 
 /*
 |--------------------------------------------------------------------------
