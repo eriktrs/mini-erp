@@ -2,10 +2,9 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Webhook Controller
+ * WebhookController (REST API)
  *
- * Handles incoming webhook requests for updating or deleting orders based on status.
- * This controller is intended for API usage (JSON requests/responses).
+ * Handles incoming webhook requests to update or delete orders based on status.
  */
 class WebhookController extends CI_Controller
 {
@@ -13,56 +12,56 @@ class WebhookController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Order_model');
-        $this->output->set_content_type('application/json'); // Force JSON output
+        $this->load->helper(['api']); // Custom API response helper
     }
 
     /**
-     * Receive webhook POST request with order ID and status.
-     * Expected JSON body: { "order_id": int, "status": string }
+     * POST /webhook/order-status
+     * Receive webhook to update or cancel an order.
+     * Expected JSON:
+     * {
+     *   "order_id": 123,
+     *   "status": "cancelled" | "shipped" | "pending"
+     * }
      */
     public function update_order_status()
     {
-        // Read and decode JSON payload
-        $payload = json_decode(trim(file_get_contents('php://input')), true);
-
-        if (!$payload || !isset($payload['order_id']) || !isset($payload['status'])) {
-            return $this->respond(['error' => 'Missing order_id or status'], 400);
+        // Validate HTTP method
+        if ($this->input->method() !== 'post') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
 
-        $orderId = (int) $payload['order_id'];
+        // Parse JSON payload
+        $payload = json_decode($this->input->raw_input_stream, true);
+
+        if (!$payload || !isset($payload['order_id']) || !isset($payload['status'])) {
+            return respondError($this->output, 'Missing required fields: order_id or status', 400);
+        }
+
+        $orderId = (int)$payload['order_id'];
         $status = strtolower(trim($payload['status']));
 
         // Validate order existence
         $order = $this->Order_model->getById($orderId);
         if (!$order) {
-            return $this->respond(['error' => 'Order not found'], 404);
+            return respondError($this->output, 'Order not found', 404);
         }
 
         // If status is "cancelled", delete the order
         if ($status === 'cancelled') {
             $deleted = $this->Order_model->delete($orderId);
             if ($deleted) {
-                return $this->respond(['message' => 'Order cancelled and removed successfully'], 200);
+                return respondSuccess($this->output, ['message' => 'Order cancelled and deleted successfully']);
             }
-            return $this->respond(['error' => 'Failed to delete order'], 500);
+            return respondError($this->output, 'Failed to delete order', 500);
         }
 
-        // Otherwise, update the status
+        // Otherwise, update order status
         $updated = $this->Order_model->updateStatus($orderId, $status);
         if ($updated) {
-            return $this->respond(['message' => 'Order status updated successfully'], 200);
+            return respondSuccess($this->output, ['message' => 'Order status updated successfully']);
         }
 
-        return $this->respond(['error' => 'Failed to update order status'], 500);
-    }
-
-    /**
-     * Helper method for sending JSON response with status code.
-     */
-    private function respond(array $data, int $statusCode)
-    {
-        $this->output->set_status_header($statusCode);
-        echo json_encode($data);
-        exit;
+        return respondError($this->output, 'Failed to update order status', 500);
     }
 }
