@@ -14,6 +14,13 @@ services:
     depends_on:
       - frontend
       - db
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=${DB_PORT}
+      - CI_ENV=development
 
   frontend:
     build:
@@ -35,10 +42,9 @@ services:
     container_name: erp-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: erp
-      MYSQL_USER: erpuser
-      MYSQL_PASSWORD: erppass
+      MYSQL_DATABASE: ${DB_HOST}
+      MYSQL_USER: ${DB_NAME}
+      MYSQL_PASSWORD: ${DB_PASS}
     ports:
       - "3306:3306"
     volumes:
