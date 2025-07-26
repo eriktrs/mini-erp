@@ -11,73 +11,70 @@ class Coupon_model extends CI_Model
     }
 
     /**
-     * Get all coupons from the database.
-     *
-     * @return array
+     * Get all coupons.
      */
-    public function getAll()
+    public function getAll(): array
     {
         return $this->db->get($this->table)->result_array();
     }
 
     /**
-     * Get coupon by code.
-     *
-     * @param string $code
-     * @return array|null
+     * Get coupon by ID.
      */
-    public function getByCode($code)
+    public function getById(int $id): ?array
     {
-        return $this->db
-            ->get_where($this->table, ['code' => $code])
-            ->row_array();
+        $query = $this->db->get_where($this->table, ['id' => $id]);
+        return $query->row_array() ?: null;
+    }
+
+    /**
+     * Get coupon by code.
+     */
+    public function getByCode(string $code): ?array
+    {
+        $query = $this->db->get_where($this->table, ['code' => $code]);
+        return $query->row_array() ?: null;
+    }
+
+    /**
+     * Check if coupon code exists.
+     */
+    public function existsByCode(string $code): bool
+    {
+        return $this->db->where('code', $code)->count_all_results($this->table) > 0;
     }
 
     /**
      * Create a new coupon.
-     *
-     * @param array $data
-     * @return int Created coupon ID
      */
-    public function create($data)
+    public function create(array $data): int
     {
         $this->db->insert($this->table, $data);
         return $this->db->insert_id();
     }
 
     /**
-     * Update a coupon by ID.
-     *
-     * @param int $id
-     * @param array $data
-     * @return bool
+     * Update coupon by ID.
      */
-    public function update($id, $data)
+    public function update(int $id, array $data): bool
     {
         return $this->db->update($this->table, $data, ['id' => $id]);
     }
 
     /**
-     * Delete a coupon by ID.
-     *
-     * @param int $id
-     * @return bool
+     * Delete coupon by ID.
      */
-    public function delete($id)
+    public function delete(int $id): bool
     {
         return $this->db->delete($this->table, ['id' => $id]);
     }
 
     /**
-     * Check if the coupon is valid based on expiration date and minimum order value.
-     *
-     * @param string $code
-     * @param float $subtotal
-     * @return array|null
+     * Validate if coupon is applicable.
      */
-    public function validate_coupon($code, $subtotal)
+    public function validateCoupon(string $code, float $subtotal): ?array
     {
-        $coupon = $this->get_by_code($code);
+        $coupon = $this->getByCode($code);
 
         if (!$coupon) {
             return null;
@@ -85,14 +82,12 @@ class Coupon_model extends CI_Model
 
         $today = date('Y-m-d');
 
-        // Check expiration date
-        if (!empty($coupon['expires_at']) && $coupon['expires_at'] < $today) {
-            return null;
+        if ($coupon['valid_until'] < $today) {
+            return null; // Expired
         }
 
-        // Check minimum order value
-        if (!empty($coupon['minimum_value']) && $subtotal < $coupon['minimum_value']) {
-            return null;
+        if ($subtotal < $coupon['minimum_value']) {
+            return null; // Does not meet minimum requirement
         }
 
         return $coupon;
