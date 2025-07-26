@@ -40,7 +40,7 @@ class OrderController extends CI_Controller
      * POST /orders/cart
      * Add product to cart.
      */
-    public function add_to_cart()
+    public function addToCart()
     {
         $input = json_decode($this->input->raw_input_stream, true);
         $productId = (int) ($input['product_id'] ?? 0);
@@ -70,7 +70,7 @@ class OrderController extends CI_Controller
      * DELETE /orders/cart/{index}
      * Remove item from cart by index.
      */
-    public function remove_from_cart($index)
+    public function removeFromCart($index)
     {
         $cart = $this->session->userdata('cart') ?? [];
 
@@ -88,7 +88,7 @@ class OrderController extends CI_Controller
      * POST /orders/coupon
      * Apply coupon to cart.
      */
-    public function apply_coupon()
+    public function applyCoupon()
     {
         $input = json_decode($this->input->raw_input_stream, true);
         $code = trim($input['coupon_code'] ?? '');
@@ -141,7 +141,7 @@ class OrderController extends CI_Controller
             'status' => 'pending'
         ];
 
-        $orderId = $this->Order_model->create($orderData, $cart);
+        $orderId = $this->Order_model->insert($orderData, $cart);
 
         $this->session->unset_userdata(['cart', 'coupon']);
 
