@@ -26,7 +26,7 @@ class Order_model extends CI_Model
      * @param int $id
      * @return array|null
      */
-    public function get_by_id($id)
+    public function getById($id)
     {
         return $this->db
             ->get_where($this->table, ['id' => $id])
