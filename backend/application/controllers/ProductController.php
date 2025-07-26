@@ -2,78 +2,76 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Product Controller (API REST)
+ * ProductController (REST API)
+ *
+ * Provides CRUD operations for products in JSON format.
  */
 class ProductController extends CI_Controller
 {
     public function __construct()
     {
         parent::__construct();
-        // Load models
         $this->load->model('Product_model');
-        $this->load->helper('url');
+        $this->load->helper(['url', 'api']); // Custom API helper for standardized responses
     }
 
     /**
      * GET /products
-     * List all products as JSON.
+     * Fetch all products.
      */
     public function index()
     {
-        $products = $this->Product_model->getAll();
-        return $this->output
-            ->set_content_type('application/json')
-            ->set_status_header(200)
-            ->set_output(json_encode(['status' => 'success', 'data' => $products]));
+        if ($this->input->method() !== 'get') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
+
+        try {
+            $products = $this->Product_model->getAll();
+            return respondSuccess($this->output, ['products' => $products]);
+        } catch (Exception $e) {
+            return respondError($this->output, 'Internal Server Error: ' . $e->getMessage(), 500);
+        }
     }
 
     /**
      * GET /products/{id}
-     * Show single product by ID.
+     * Fetch a single product by ID.
      */
     public function show($id)
     {
-        $product = $this->Product_model->getById($id);
-
-        if ($product) {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(200)
-                ->set_output(json_encode(['status' => 'success', 'data' => $product]));
-        } else {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(404)
-                ->set_output(json_encode(['status' => 'error', 'message' => 'Product not found']));
+        if ($this->input->method() !== 'get') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
+
+        $product = $this->Product_model->getById((int)$id);
+        if ($product) {
+            return respondSuccess($this->output, ['product' => $product]);
+        }
+        return respondError($this->output, 'Product not found', 404);
     }
 
     /**
      * POST /products
-     * Create new product.
+     * Create a new product.
      */
     public function store()
     {
-        $input = json_decode($this->input->raw_input_stream, true);
+        if ($this->input->method() !== 'post') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
 
-        if (!isset($input['name']) || !isset($input['price'])) {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(400)
-                ->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
+        $input = json_decode($this->input->raw_input_stream, true);
+        if (!isset($input['name'], $input['price'])) {
+            return respondError($this->output, 'Missing required fields: name, price', 400);
         }
 
         $data = [
-            'name'  => $input['name'],
-            'price' => $input['price'],
+            'name' => htmlspecialchars(trim($input['name'])),
+            'price' => (float)$input['price']
         ];
 
         $id = $this->Product_model->create($data);
-
-        return $this->output
-            ->set_content_type('application/json')
-            ->set_status_header(201)
-            ->set_output(json_encode(['status' => 'success', 'message' => 'Product created', 'id' => $id]));
+        return respondSuccess($this->output, ['message' => 'Product created', 'id' => $id], 201);
     }
 
     /**
@@ -82,29 +80,25 @@ class ProductController extends CI_Controller
      */
     public function update($id)
     {
-        $input = json_decode($this->input->raw_input_stream, true);
+        if ($this->input->method() !== 'put') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
 
-        if (!isset($input['name']) || !isset($input['price'])) {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(400)
-                ->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
+        $input = json_decode($this->input->raw_input_stream, true);
+        if (!isset($input['name'], $input['price'])) {
+            return respondError($this->output, 'Missing required fields: name, price', 400);
         }
 
         $data = [
-            'name'  => $input['name'],
-            'price' => $input['price'],
+            'name' => htmlspecialchars(trim($input['name'])),
+            'price' => (float)$input['price']
         ];
 
-        $updated = $this->Product_model->update($id, $data);
-
-        return $this->output
-            ->set_content_type('application/json')
-            ->set_status_header($updated ? 200 : 404)
-            ->set_output(json_encode([
-                'status' => $updated ? 'success' : 'error',
-                'message' => $updated ? 'Product updated' : 'Product not found'
-            ]));
+        $updated = $this->Product_model->update((int)$id, $data);
+        if ($updated) {
+            return respondSuccess($this->output, ['message' => 'Product updated']);
+        }
+        return respondError($this->output, 'Product not found', 404);
     }
 
     /**
@@ -113,14 +107,14 @@ class ProductController extends CI_Controller
      */
     public function delete($id)
     {
-        $deleted = $this->Product_model->delete($id);
+        if ($this->input->method() !== 'delete') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
 
-        return $this->output
-            ->set_content_type('application/json')
-            ->set_status_header($deleted ? 200 : 404)
-            ->set_output(json_encode([
-                'status' => $deleted ? 'success' : 'error',
-                'message' => $deleted ? 'Product deleted' : 'Product not found'
-            ]));
+        $deleted = $this->Product_model->delete((int)$id);
+        if ($deleted) {
+            return respondSuccess($this->output, ['message' => 'Product deleted']);
+        }
+        return respondError($this->output, 'Product not found', 404);
     }
 }
