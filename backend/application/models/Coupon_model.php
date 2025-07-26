@@ -15,7 +15,7 @@ class Coupon_model extends CI_Model
      *
      * @return array
      */
-    public function get_all()
+    public function getAll()
     {
         return $this->db->get($this->table)->result_array();
     }
@@ -26,7 +26,7 @@ class Coupon_model extends CI_Model
      * @param string $code
      * @return array|null
      */
-    public function get_by_code($code)
+    public function getByCode($code)
     {
         return $this->db
             ->get_where($this->table, ['code' => $code])
