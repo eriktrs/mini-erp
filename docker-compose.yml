@@ -12,7 +12,6 @@ services:
     networks:
       - erpnet
     depends_on:
-      - frontend
       - db
     environment:
       - DB_HOST=${DB_HOST}
@@ -42,8 +41,9 @@ services:
     container_name: erp-db
     restart: always
     environment:
-      MYSQL_DATABASE: ${DB_HOST}
-      MYSQL_USER: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
     ports:
       - "3306:3306"
