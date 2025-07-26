@@ -2,10 +2,9 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Coupon Controller
+ * CouponController (REST API)
  *
- * Manages coupon CRUD operations (Create, Read, Update, Delete).
- * This controller serves as an API endpoint, returning JSON responses.
+ * Provides CRUD operations for coupons in JSON format.
  */
 class CouponController extends CI_Controller
 {
@@ -13,104 +12,136 @@ class CouponController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Coupon_model');
-        $this->output->set_content_type('application/json'); // Force JSON output
+        $this->load->helper(['url', 'api']); // Use custom API helper
     }
 
     /**
+     * GET /coupons
      * Retrieve all available coupons.
-     * GET /coupon
      */
     public function index()
     {
+        if ($this->input->method() !== 'get') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
+
         $coupons = $this->Coupon_model->getAll();
-        return $this->respond(['data' => $coupons], 200);
+        return respondSuccess($this->output, ['coupons' => $coupons]);
     }
 
     /**
+     * GET /coupons/{id}
      * Retrieve a specific coupon by ID.
-     * GET /coupon/{id}
      */
     public function show($id)
     {
-        $coupon = $this->Coupon_model->getById((int) $id);
-        if ($coupon) {
-            return $this->respond(['data' => $coupon], 200);
+        if ($this->input->method() !== 'get') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
-        return $this->respond(['error' => 'Coupon not found'], 404);
+
+        $coupon = $this->Coupon_model->getById((int)$id);
+        if ($coupon) {
+            return respondSuccess($this->output, ['coupon' => $coupon]);
+        }
+        return respondError($this->output, 'Coupon not found', 404);
     }
 
     /**
+     * POST /coupons
      * Create a new coupon.
-     * POST /coupon
-     * Expected JSON: { "code": "DISCOUNT10", "value": 10.00, "valid_until": "2025-12-31", "minimum_value": 50.00 }
+     * Expected JSON:
+     * {
+     *   "code": "DISCOUNT10",
+     *   "value": 10.00,
+     *   "valid_until": "2025-12-31",
+     *   "minimum_value": 50.00
+     * }
      */
     public function store()
     {
-        $payload = json_decode(trim(file_get_contents('php://input')), true);
-
-        if (!$this->validateCoupon($payload)) {
-            return $this->respond(['error' => 'Invalid coupon data'], 400);
+        if ($this->input->method() !== 'post') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
 
-        $couponId = $this->Coupon_model->create($payload);
+        $input = json_decode($this->input->raw_input_stream, true);
+        if (!$this->validateCoupon($input)) {
+            return respondError($this->output, 'Invalid coupon data', 400);
+        }
+
+        $data = [
+            'code'          => htmlspecialchars(trim($input['code'])),
+            'value'         => (float)$input['value'],
+            'valid_until'   => $input['valid_until'],
+            'minimum_value' => (float)$input['minimum_value']
+        ];
+
+        $couponId = $this->Coupon_model->create($data);
         if ($couponId) {
-            return $this->respond(['message' => 'Coupon created successfully', 'id' => $couponId], 201);
+            return respondSuccess($this->output, [
+                'message' => 'Coupon created successfully',
+                'id' => $couponId
+            ], 201);
         }
-        return $this->respond(['error' => 'Failed to create coupon'], 500);
+
+        return respondError($this->output, 'Failed to create coupon', 500);
     }
 
     /**
+     * PUT /coupons/{id}
      * Update an existing coupon.
-     * PUT /coupon/{id}
-     * Expected JSON: { "code": "NEWCODE", "value": 15.00, "valid_until": "2025-12-31", "minimum_value": 100.00 }
      */
     public function update($id)
     {
-        $payload = json_decode(trim(file_get_contents('php://input')), true);
-
-        if (!$this->validateCoupon($payload)) {
-            return $this->respond(['error' => 'Invalid coupon data'], 400);
+        if ($this->input->method() !== 'put') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
 
-        $updated = $this->Coupon_model->update((int) $id, $payload);
+        $input = json_decode($this->input->raw_input_stream, true);
+        if (!$this->validateCoupon($input)) {
+            return respondError($this->output, 'Invalid coupon data', 400);
+        }
+
+        $data = [
+            'code'          => htmlspecialchars(trim($input['code'])),
+            'value'         => (float)$input['value'],
+            'valid_until'   => $input['valid_until'],
+            'minimum_value' => (float)$input['minimum_value']
+        ];
+
+        $updated = $this->Coupon_model->update((int)$id, $data);
         if ($updated) {
-            return $this->respond(['message' => 'Coupon updated successfully'], 200);
+            return respondSuccess($this->output, ['message' => 'Coupon updated successfully']);
         }
-        return $this->respond(['error' => 'Failed to update coupon'], 500);
+
+        return respondError($this->output, 'Coupon not found or update failed', 404);
     }
 
     /**
+     * DELETE /coupons/{id}
      * Delete a coupon.
-     * DELETE /coupon/{id}
      */
     public function delete($id)
     {
-        $deleted = $this->Coupon_model->delete((int) $id);
-        if ($deleted) {
-            return $this->respond(['message' => 'Coupon deleted successfully'], 200);
+        if ($this->input->method() !== 'delete') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
-        return $this->respond(['error' => 'Failed to delete coupon'], 500);
+
+        $deleted = $this->Coupon_model->delete((int)$id);
+        if ($deleted) {
+            return respondSuccess($this->output, ['message' => 'Coupon deleted successfully']);
+        }
+        return respondError($this->output, 'Coupon not found or delete failed', 404);
     }
 
     /**
      * Validate coupon payload.
      */
-    private function validateCoupon($data)
+    private function validateCoupon($data): bool
     {
         return isset($data['code'], $data['value'], $data['valid_until'], $data['minimum_value']) &&
                !empty($data['code']) &&
                is_numeric($data['value']) &&
                strtotime($data['valid_until']) !== false &&
                is_numeric($data['minimum_value']);
-    }
-
-    /**
-     * Helper method to send JSON response with HTTP status code.
-     */
-    private function respond(array $data, int $statusCode)
-    {
-        $this->output->set_status_header($statusCode);
-        echo json_encode($data);
-        exit;
     }
 }
