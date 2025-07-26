@@ -11,40 +11,40 @@ class Product_model extends CI_Model
     }
 
     /**
-     * Get all products.
+     * Get all products
      *
      * @return array
      */
-    public function get_all()
+    public function getAll()
     {
         return $this->db->get($this->table)->result_array();
     }
 
     /**
-     * Get a single product by its ID.
+     * Get a single product by ID
      *
      * @param int $id
      * @return array|null
      */
-    public function get_by_id($id)
+    public function getById($id)
     {
         return $this->db->get_where($this->table, ['id' => $id])->row_array();
     }
 
     /**
-     * Insert a new product into the database.
+     * Create a new product
      *
      * @param array $data
-     * @return int Inserted product ID
+     * @return int|bool Inserted ID or false on failure
      */
-    public function insert($data)
+    public function create($data)
     {
-        $this->db->insert($this->table, $data);
-        return $this->db->insert_id();
+        $inserted = $this->db->insert($this->table, $data);
+        return $inserted ? $this->db->insert_id() : false;
     }
 
     /**
-     * Update product data by ID.
+     * Update a product by ID
      *
      * @param int $id
      * @param array $data
@@ -52,11 +52,12 @@ class Product_model extends CI_Model
      */
     public function update($id, $data)
     {
-        return $this->db->update($this->table, $data, ['id' => $id]);
+        $this->db->where('id', $id);
+        return $this->db->update($this->table, $data);
     }
 
     /**
-     * Delete a product by ID.
+     * Delete a product by ID
      *
      * @param int $id
      * @return bool
