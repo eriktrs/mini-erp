@@ -12,7 +12,7 @@ class ProductController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Product_model');
-        $this->load->helper(['url', 'api']); // Custom API helper for standardized responses
+        $this->load->helper(['url', 'api']);
     }
 
     /**
