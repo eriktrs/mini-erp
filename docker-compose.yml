@@ -19,7 +19,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - DB_PORT=${DB_PORT}
-      - CI_ENV=development
+      - CI_ENV=${CI_ENV}
 
   frontend:
     build:
