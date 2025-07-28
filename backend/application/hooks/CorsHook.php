@@ -9,18 +9,14 @@ class CorsHook {
 
     public function handle()
     {
-        $allowedOrigins = [];
+        // Get frontend URL from ENV or default for dev
+        $allowedOrigins = (ENVIRONMENT === 'development')
+            ? ['*']
+            : [getenv('FRONTEND_URL')];
 
-        if (ENVIRONMENT === 'development') {
-            // Allow everything in development
-            $allowedOrigins = ['*'];
-        } else {
-            // Restrict in production
-            $allowedOrigins = ['https://localhost:5173/'];
-        }
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-        printf($origin);
+        // Allow if origin matches allowed or in dev mode
         if (in_array('*', $allowedOrigins) || in_array($origin, $allowedOrigins)) {
             header("Access-Control-Allow-Origin: " . ($allowedOrigins[0] === '*' ? '*' : $origin));
             header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -28,9 +24,10 @@ class CorsHook {
             header("Access-Control-Allow-Credentials: true");
         }
 
-        // Handle OPTIONS preflight request
+        // Respond to preflight request immediately
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            exit(0);
+            http_response_code(200);
+            exit;
         }
     }
 }
