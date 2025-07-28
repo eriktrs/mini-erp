@@ -12,7 +12,7 @@ class WebhookController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Order_model');
-        $this->load->helper(['api']); // Custom API response helper
+        $this->load->helper(['api']);
     }
 
     /**
