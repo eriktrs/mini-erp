@@ -1,29 +1,27 @@
-import axios from 'axios'
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+import api from "./api";
 
 export interface Product {
-  id: number
-  name: string
-  price: number
+  id: number;
+  name: string;
+  price: number;
+  variations?: string[];
+  stock?: number;
 }
 
-export async function getProducts(): Promise<Product[]> {
-  const response = await axios.get(`${API_BASE}/products`)
-  return response.data
-}
+const productService = {
+  async getAll(): Promise<Product[]> {
+    const response = await api.get("/products");
+    return response.data.data;
+  },
+  async create(payload: Omit<Product, "id">) {
+    return (await api.post("/products", payload)).data;
+  },
+  async update(id: number, payload: Omit<Product, "id">) {
+    return (await api.put(`/products/${id}`, payload)).data;
+  },
+  async remove(id: number) {
+    return (await api.delete(`/products/${id}`)).data;
+  },
+};
 
-export async function createProduct(product: Partial<Product>) {
-  const response = await axios.post(`${API_BASE}/products/store`, product)
-  return response.data
-}
-
-export async function updateProduct(id: number, product: Partial<Product>) {
-  const response = await axios.post(`${API_BASE}/products/update/${id}`, product)
-  return response.data
-}
-
-export async function deleteProduct(id: number) {
-  const response = await axios.delete(`${API_BASE}/products/delete/${id}`)
-  return response.data
-}
+export default productService;
