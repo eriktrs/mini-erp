@@ -14,7 +14,7 @@
     <div v-if="loading" class="text-gray-500 text-center">Loading...</div>
     <div v-else>
       <ProductTable
-        v-if="products.length"
+        v-if="products && products.length > 0"
         :products="products"
         @edit="openForm"
         @delete="deleteProduct"
