@@ -48,7 +48,7 @@ export default defineComponent({
   props: {
     products: {
       type: Array as PropType<
-        { id: number; name: string; price: number; variations?: any[] }[]
+        { id: number; name: string; price: number; variations?: any[]; stock?: number }[]
       >,
       required: true,
     },
