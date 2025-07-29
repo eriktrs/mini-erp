@@ -1,27 +1,26 @@
 import api from "./api";
 
 export interface Coupon {
-  id?: number;
+  id: number;
   code: string;
-  value: number;
+  discount: number;
+  min_value: number;
   valid_until: string;
-  minimum_value: number;
 }
 
 const couponService = {
-  getCoupons,
+  async getAll(): Promise<Coupon[]> {
+    return (await api.get("/coupons")).data.coupons;
+  },
+  async create(payload: Omit<Coupon, "id">) {
+    return (await api.post("/coupons", payload)).data;
+  },
+  async update(id: number, payload: Omit<Coupon, "id">) {
+    return (await api.put(`/coupons/${id}`, payload)).data;
+  },
+  async remove(id: number) {
+    return (await api.delete(`/coupons/${id}`)).data;
+  },
 };
 
 export default couponService;
-
-// Fetch all coupons
-export async function getCoupons() {
-  const response = await api.get("/coupons");
-  return response.data;
-}
-
-// Create coupon
-export async function createCoupon(coupon: Coupon) {
-  const response = await api.post("/coupons/store", coupon);
-  return response.data;
-}
