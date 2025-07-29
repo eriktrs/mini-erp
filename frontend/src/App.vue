@@ -1,12 +1,16 @@
 <template>
-  <div>
-    <Navbar />
-    <main class="p-4 max-w-7xl mx-auto">
-      <router-view />
-    </main>
-  </div>
+  <Navbar />
+  <main class="container mx-auto p-4">
+    <router-view />
+  </main>
 </template>
 
-<script lang="ts" setup>
-import Navbar from './components/Navbar.vue'
+<script lang="ts">
+  import { defineComponent } from "vue";
+  import Navbar from "./components/ui/Navbar.vue";
+
+  export default defineComponent({
+    name: "App",
+    components: { Navbar },
+  });
 </script>
