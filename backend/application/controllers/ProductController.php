@@ -145,10 +145,11 @@ class ProductController extends CI_Controller
             return respondError($this->output, 'Product not found', 404);
         }
 
-        // Remove old variations
-        $this->ProductVariation_model->delete_by_product((int)$id);
-
+        
         if (!empty($input['variations'])) {
+            
+            $this->ProductVariation_model->delete_by_product((int)$id);
+
             foreach ($input['variations'] as $variation) {
                 if (!isset($variation['name'])) {
                     continue;
