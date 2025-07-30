@@ -71,4 +71,15 @@ class ProductVariation_model extends CI_Model
     {
         return $this->db->delete($this->table, ['id' => $id]);
     }
+
+    /**
+     * Delete all variations for a specific product.
+     *
+     * @param int $product_id
+     * @return bool
+     */
+    public function delete_by_product($product_id)
+    {
+        return $this->db->delete($this->table, ['product_id' => $product_id]);
+    }
 }
