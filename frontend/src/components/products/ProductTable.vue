@@ -18,7 +18,7 @@
         >
           <td class="px-4 py-2 border">{{ product.id }}</td>
           <td class="px-4 py-2 border">{{ product.name }}</td>
-          <td class="px-4 py-2 border">{{ product.price.toFixed(2) }}</td>
+          <td class="px-4 py-2 border">{{ product.price }}</td>
           <td class="px-4 py-2 border text-center">
             <button
               @click="$emit('edit', product)"
