@@ -19,7 +19,7 @@ class ProductStock_model extends CI_Model
     public function get_by_variation($variation_id)
     {
         return $this->db
-            ->where('product_variation_id', $variation_id)
+            ->where('variation_id', $variation_id)
             ->get($this->table)
             ->result_array();
     }
@@ -81,7 +81,7 @@ class ProductStock_model extends CI_Model
      */
     public function decrease_stock($variation_id, $quantity)
     {
-        $this->db->where('product_variation_id', $variation_id);
+        $this->db->where('variation_id', $variation_id);
         $this->db->set('quantity', 'quantity - ' . (int) $quantity, false);
         return $this->db->update($this->table);
     }
@@ -95,7 +95,7 @@ class ProductStock_model extends CI_Model
      */
     public function increase_stock($variation_id, $quantity)
     {
-        $this->db->where('product_variation_id', $variation_id);
+        $this->db->where('variation_id', $variation_id);
         $this->db->set('quantity', 'quantity + ' . (int) $quantity, false);
         return $this->db->update($this->table);
     }
