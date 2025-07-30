@@ -12,6 +12,8 @@ class ProductController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Product_model');
+        $this->load->model('ProductVariation_model');
+        $this->load->model('ProductStock_model');
         $this->load->helper(['url', 'api']);
     }
 
@@ -27,6 +29,15 @@ class ProductController extends CI_Controller
 
         try {
             $products = $this->Product_model->getAll();
+
+            foreach ($products as &$product) {
+                $variations = $this->ProductVariation_model->get_by_product($product['id']);
+                foreach ($variations as &$variation) {
+                    $variation['stock'] = $this->ProductStock_model->get_by_variation($variation['id']);
+                }
+                $product['variations'] = $variations;
+            }
+
             return respondSuccess($this->output, ['products' => $products]);
         } catch (Exception $e) {
             return respondError($this->output, 'Internal Server Error: ' . $e->getMessage(), 500);
@@ -35,7 +46,6 @@ class ProductController extends CI_Controller
 
     /**
      * GET /products/{id}
-     * Fetch a single product by ID.
      */
     public function show($id)
     {
@@ -44,15 +54,23 @@ class ProductController extends CI_Controller
         }
 
         $product = $this->Product_model->getById((int)$id);
-        if ($product) {
-            return respondSuccess($this->output, ['product' => $product]);
+        if (!$product) {
+            return respondError($this->output, 'Product not found', 404);
         }
-        return respondError($this->output, 'Product not found', 404);
+
+        $variations = $this->ProductVariation_model->get_by_product((int)$id);
+        foreach ($variations as &$variation) {
+            $variation['stock'] = $this->ProductStock_model->get_by_variation($variation['id']);
+        }
+
+        return respondSuccess($this->output, [
+            'product' => $product,
+            'variations' => $variations
+        ]);
     }
 
     /**
      * POST /products
-     * Create a new product.
      */
     public function store()
     {
@@ -61,6 +79,7 @@ class ProductController extends CI_Controller
         }
 
         $input = json_decode($this->input->raw_input_stream, true);
+
         if (!isset($input['name'], $input['price'])) {
             return respondError($this->output, 'Missing required fields: name, price', 400);
         }
@@ -70,13 +89,39 @@ class ProductController extends CI_Controller
             'price' => (float)$input['price']
         ];
 
-        $id = $this->Product_model->create($data);
-        return respondSuccess($this->output, ['message' => 'Product created', 'id' => $id], 201);
+        $productId = $this->Product_model->create($data);
+        if (!$productId) {
+            return respondError($this->output, 'Failed to create product', 500);
+        }
+
+        if (!empty($input['variations'])) {
+            foreach ($input['variations'] as $variation) {
+                if (!isset($variation['name'])) {
+                    continue;
+                }
+
+                $variationData = [
+                    'product_id' => $productId,
+                    'name' => htmlspecialchars(trim($variation['name']))
+                ];
+
+                $variationId = $this->ProductVariation_model->insert($variationData);
+
+                if ($variationId && isset($variation['stock'])) {
+                    $stockData = [
+                        'variation_id' => $variationId,
+                        'quantity' => (int)$variation['stock']
+                    ];
+                    $this->ProductStock_model->insert($stockData);
+                }
+            }
+        }
+
+        return respondSuccess($this->output, ['message' => 'Product created', 'id' => $productId], 201);
     }
 
     /**
      * PUT /products/{id}
-     * Update product by ID.
      */
     public function update($id)
     {
@@ -85,6 +130,7 @@ class ProductController extends CI_Controller
         }
 
         $input = json_decode($this->input->raw_input_stream, true);
+
         if (!isset($input['name'], $input['price'])) {
             return respondError($this->output, 'Missing required fields: name, price', 400);
         }
@@ -95,15 +141,41 @@ class ProductController extends CI_Controller
         ];
 
         $updated = $this->Product_model->update((int)$id, $data);
-        if ($updated) {
-            return respondSuccess($this->output, ['message' => 'Product updated']);
+        if (!$updated) {
+            return respondError($this->output, 'Product not found', 404);
         }
-        return respondError($this->output, 'Product not found', 404);
+
+        // Remove old variations
+        $this->ProductVariation_model->delete_by_product((int)$id);
+
+        if (!empty($input['variations'])) {
+            foreach ($input['variations'] as $variation) {
+                if (!isset($variation['name'])) {
+                    continue;
+                }
+
+                $variationData = [
+                    'product_id' => $id,
+                    'name' => htmlspecialchars(trim($variation['name']))
+                ];
+
+                $variationId = $this->ProductVariation_model->insert($variationData);
+
+                if ($variationId && isset($variation['stock'])) {
+                    $stockData = [
+                        'variation_id' => $variationId,
+                        'quantity' => (int)$variation['stock']
+                    ];
+                    $this->ProductStock_model->insert($stockData);
+                }
+            }
+        }
+
+        return respondSuccess($this->output, ['message' => 'Product updated']);
     }
 
     /**
      * DELETE /products/{id}
-     * Delete product by ID.
      */
     public function delete($id)
     {
@@ -115,6 +187,7 @@ class ProductController extends CI_Controller
         if ($deleted) {
             return respondSuccess($this->output, ['message' => 'Product deleted']);
         }
+
         return respondError($this->output, 'Product not found', 404);
     }
 }
