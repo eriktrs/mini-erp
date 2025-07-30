@@ -45,7 +45,8 @@ const { products, fetchProducts, addProduct, editProduct, removeProduct } = useP
 const loading = ref(true);
 const showForm = ref(false);
 const selectedProduct = ref<any>(null);
-const defaultForm = { name: "", price: 0, stock: 0 };
+
+const defaultForm = { name: "", price: 0, variations: [] };
 
 onMounted(async () => {
   await fetchProducts();
@@ -53,12 +54,20 @@ onMounted(async () => {
 });
 
 function openForm(product: any = null) {
-  selectedProduct.value = product;
+  if (product) {
+    selectedProduct.value = {
+      ...product,
+      variations: product.variations || [],
+    };
+  } else {
+    selectedProduct.value = null;
+  }
   showForm.value = true;
 }
 
 function closeForm() {
   showForm.value = false;
+  selectedProduct.value = null;
 }
 
 async function saveProduct(data: any) {
@@ -67,12 +76,14 @@ async function saveProduct(data: any) {
   } else {
     await addProduct(data);
   }
+  await fetchProducts();
   closeForm();
 }
 
 async function deleteProduct(id: number) {
   if (confirm("Are you sure you want to delete this product?")) {
     await removeProduct(id);
+    await fetchProducts();
   }
 }
 </script>
