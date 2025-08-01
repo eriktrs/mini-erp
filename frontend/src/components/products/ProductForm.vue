@@ -22,6 +22,7 @@
           v-model.number="localForm.price"
           type="number"
           step="0.01"
+          min="0"
           required
           class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400"
         />
@@ -30,7 +31,12 @@
       <!-- Variations Section -->
       <div>
         <label class="block text-gray-700 mb-2">Variations</label>
-        <div v-for="(variation, index) in localForm.variations" :key="index" class="flex gap-2 mb-2">
+
+        <div
+          v-for="(variation, index) in localForm.variations"
+          :key="index"
+          class="flex items-center gap-2 mb-2"
+        >
           <input
             v-model="variation.name"
             type="text"
@@ -49,7 +55,8 @@
           <button
             type="button"
             @click="removeVariation(index)"
-            class="bg-red-500 text-white px-2 rounded hover:bg-red-600"
+            class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+            aria-label="Remove variation"
           >
             ✕
           </button>
@@ -118,6 +125,10 @@ export default defineComponent({
     };
 
     const onSubmit = () => {
+      if (localForm.variations.length === 0) {
+        alert("Please add at least one variation with stock.");
+        return;
+      }
       emit("submit", { ...localForm });
     };
 
