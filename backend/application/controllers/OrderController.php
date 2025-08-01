@@ -40,30 +40,30 @@ class OrderController extends CI_Controller
      * POST /orders/cart
      * Add product to cart.
      */
-    public function addToCart()
-    {
-        $input = json_decode($this->input->raw_input_stream, true);
-        $productId = (int) ($input['product_id'] ?? 0);
-        $variationId = (int) ($input['variation_id'] ?? 0);
-        $quantity = (int) ($input['quantity'] ?? 1);
-
-        $product = $this->Product_model->getById($productId);
-        if (!$product) {
-            return respondError($this->output, 'Product not found', 404);
+    public function addToCart() {
+        if ($this->input->method() !== 'post') {
+            return respondError($this->output, 'Method Not Allowed', 405);
         }
 
-        $cart = $this->session->userdata('cart') ?? [];
-        $cart[] = [
-            'product_id' => $productId,
-            'variation_id' => $variationId,
-            'name' => $product['name'],
-            'price' => $product['price'],
-            'quantity' => $quantity
-        ];
+        $input = json_decode($this->input->raw_input_stream, true);
 
-        $this->session->set_userdata('cart', $cart);
+        if (!isset($input['product_id'], $input['variation_id'], $input['qty'])) {
+            return respondError($this->output, 'Missing required fields', 400);
+        }
 
-        return respondSuccess($this->output, ['message' => 'Product added to cart', 'cart' => $cart], 201);
+        $variationStock = $this->ProductStock_model->get_by_variation($input['variation_id']);
+
+        if (!$variationStock || $variationStock['quantity'] < $input['qty']) {
+            return respondError($this->output, 'Insufficient stock', 400);
+        }
+
+        // Deduct stock
+        $this->ProductStock_model->update_quantity($input['variation_id'], $variationStock['quantity'] - $input['qty']);
+
+        // Add to cart
+        $orderId = $this->Order_model->add_item($input['product_id'], $input['variation_id'], $input['qty']);
+
+        return respondSuccess($this->output, ['message' => 'Product added to cart', 'order_id' => $orderId]);
     }
 
     /**
