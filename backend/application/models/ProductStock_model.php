@@ -11,29 +11,16 @@ class ProductStock_model extends CI_Model
     }
 
     /**
-     * Get all stock entries for a given product variation.
+     * Get stock entry for a given product variation (only one expected).
      *
      * @param int $variation_id
-     * @return array
+     * @return array|null
      */
     public function get_by_variation($variation_id)
     {
         return $this->db
             ->where('variation_id', $variation_id)
             ->get($this->table)
-            ->result_array();
-    }
-
-    /**
-     * Get a specific stock entry by ID.
-     *
-     * @param int $id
-     * @return array|null
-     */
-    public function get_by_id($id)
-    {
-        return $this->db
-            ->get_where($this->table, ['id' => $id])
             ->row_array();
     }
 
