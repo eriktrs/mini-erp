@@ -7,6 +7,7 @@
           <th class="px-4 py-2 border">ID</th>
           <th class="px-4 py-2 border">Name</th>
           <th class="px-4 py-2 border">Price (R$)</th>
+          <th class="px-4 py-2 border">Variations & Stock</th>
           <th class="px-4 py-2 border">Actions</th>
         </tr>
       </thead>
@@ -18,7 +19,14 @@
         >
           <td class="px-4 py-2 border">{{ product.id }}</td>
           <td class="px-4 py-2 border">{{ product.name }}</td>
-          <td class="px-4 py-2 border">{{ product.price }}</td>
+          <td class="px-4 py-2 border">R$ {{ product.price }}</td>
+          <td class="px-4 py-2 border">
+            <ul>
+              <li v-for="v in product.variations" :key="v.id">
+                {{ v.name }} (Stock: {{ v.stock }})
+              </li>
+            </ul>
+          </td>
           <td class="px-4 py-2 border text-center">
             <button
               @click="$emit('edit', product)"
@@ -28,9 +36,15 @@
             </button>
             <button
               @click="$emit('delete', product.id)"
-              class="text-red-600 hover:underline"
+              class="text-red-600 hover:underline mr-2"
             >
               Delete
+            </button>
+            <button
+              @click="$emit('buy', product)"
+              class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+            >
+              Buy
             </button>
           </td>
         </tr>
@@ -48,7 +62,7 @@ export default defineComponent({
   props: {
     products: {
       type: Array as PropType<
-        { id: number; name: string; price: number; variations?: any[]; stock?: number }[]
+        { id: number; name: string; price: number; variations: { id: number; name: string; stock: number }[] }[]
       >,
       required: true,
     },
