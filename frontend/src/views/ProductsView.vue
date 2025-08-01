@@ -18,6 +18,7 @@
         :products="products"
         @edit="openForm"
         @delete="deleteProduct"
+        @buy="buyProduct"
       />
       <p v-else class="text-gray-500 text-center">No products found</p>
     </div>
@@ -39,6 +40,7 @@ import ProductTable from "../components/products/ProductTable.vue";
 import ProductForm from "../components/products/ProductForm.vue";
 import Modal from "../components/ui/Modal.vue";
 import { useProducts } from "../composables/useProducts";
+import orderService from "../services/orderService";
 
 const { products, fetchProducts, addProduct, editProduct, removeProduct } = useProducts();
 
@@ -84,6 +86,30 @@ async function deleteProduct(id: number) {
   if (confirm("Are you sure you want to delete this product?")) {
     await removeProduct(id);
     await fetchProducts();
+  }
+}
+
+async function buyProduct(product: any) {
+  if (!product.variations || product.variations.length === 0) {
+    alert("This product has no variations.");
+    return;
+  }
+
+  const variation = product.variations[0];
+
+  try {
+    await orderService.addToCart({
+      product_id: product.id,
+      variation_id: variation.id,
+      qty: 1
+    });
+
+    alert("Product added to cart!");
+    
+    await fetchProducts();
+
+  } catch (error) {
+    alert("Failed to add product to cart. Maybe no stock left.");
   }
 }
 </script>
