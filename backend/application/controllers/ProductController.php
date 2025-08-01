@@ -1,11 +1,6 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-/**
- * ProductController (REST API)
- *
- * Provides CRUD operations for products in JSON format.
- */
 class ProductController extends CI_Controller
 {
     public function __construct()
@@ -14,6 +9,7 @@ class ProductController extends CI_Controller
         $this->load->model('Product_model');
         $this->load->model('ProductVariation_model');
         $this->load->model('ProductStock_model');
+        $this->load->model('Order_model');
         $this->load->helper(['url', 'api']);
     }
 
@@ -32,9 +28,12 @@ class ProductController extends CI_Controller
 
             foreach ($products as &$product) {
                 $variations = $this->ProductVariation_model->get_by_product($product['id']);
+
                 foreach ($variations as &$variation) {
-                    $variation['stock'] = $this->ProductStock_model->get_by_variation($variation['id']);
+                    $stockData = $this->ProductStock_model->get_by_variation($variation['id']);
+                    $variation['stock'] = $stockData ? (int)$stockData['quantity'] : 0;
                 }
+
                 $product['variations'] = $variations;
             }
 
@@ -60,7 +59,8 @@ class ProductController extends CI_Controller
 
         $variations = $this->ProductVariation_model->get_by_product((int)$id);
         foreach ($variations as &$variation) {
-            $variation['stock'] = $this->ProductStock_model->get_by_variation($variation['id']);
+            $stockData = $this->ProductStock_model->get_by_variation($variation['id']);
+            $variation['stock'] = $stockData ? (int)$stockData['quantity'] : 0;
         }
 
         return respondSuccess($this->output, [
@@ -96,9 +96,7 @@ class ProductController extends CI_Controller
 
         if (!empty($input['variations'])) {
             foreach ($input['variations'] as $variation) {
-                if (!isset($variation['name'])) {
-                    continue;
-                }
+                if (!isset($variation['name'])) continue;
 
                 $variationData = [
                     'product_id' => $productId,
@@ -145,15 +143,12 @@ class ProductController extends CI_Controller
             return respondError($this->output, 'Product not found', 404);
         }
 
-        
+        // Delete old variations and stock, then recreate
         if (!empty($input['variations'])) {
-            
             $this->ProductVariation_model->delete_by_product((int)$id);
 
             foreach ($input['variations'] as $variation) {
-                if (!isset($variation['name'])) {
-                    continue;
-                }
+                if (!isset($variation['name'])) continue;
 
                 $variationData = [
                     'product_id' => $id,
@@ -190,5 +185,44 @@ class ProductController extends CI_Controller
         }
 
         return respondError($this->output, 'Product not found', 404);
+    }
+
+    /**
+     * POST /products/buy
+     */
+    public function buy()
+    {
+        if ($this->input->method() !== 'post') {
+            return respondError($this->output, 'Method Not Allowed', 405);
+        }
+
+        $input = json_decode($this->input->raw_input_stream, true);
+
+        if (!isset($input['product_id'], $input['variation_id'], $input['qty'])) {
+            return respondError($this->output, 'Missing required fields: product_id, variation_id, qty', 400);
+        }
+
+        $productId = (int)$input['product_id'];
+        $variationId = (int)$input['variation_id'];
+        $qty = (int)$input['qty'];
+
+        // Check stock
+        $stockData = $this->ProductStock_model->get_by_variation($variationId);
+        if (!$stockData || $stockData['quantity'] < $qty) {
+            return respondError($this->output, 'Insufficient stock', 400);
+        }
+
+        // Reduce stock
+        $this->ProductStock_model->update($stockData['id'], [
+            'quantity' => $stockData['quantity'] - $qty
+        ]);
+
+        // Create order
+        $orderId = $this->Order_model->addToCart($productId, $variationId, $qty);
+
+        return respondSuccess($this->output, [
+            'message' => 'Product added to order',
+            'order_id' => $orderId
+        ]);
     }
 }
