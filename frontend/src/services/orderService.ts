@@ -14,6 +14,7 @@ export interface CheckoutResponse {
 
 export interface AddToCartPayload {
   product_id: number;
+  variation_id: number;
   qty: number;
 }
 
