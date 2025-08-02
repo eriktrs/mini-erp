@@ -145,7 +145,7 @@ async function fetchCart() {
   if (data.coupon) {
     appliedCoupon.value = {
       code: data.coupon.code,
-      discount: parseFloat(data.coupon.discount),
+      discount: parseFloat(data.discount),
     };
   } else {
     appliedCoupon.value = null;

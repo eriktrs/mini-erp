@@ -58,6 +58,7 @@ class OrderController extends CI_Controller
             'cart' => $cart,
             'subtotal' => $subtotal,
             'shipping' => $shipping,
+            'coupon' => $coupon,
             'discount' => $discount,
             'total' => $total
         ]);
