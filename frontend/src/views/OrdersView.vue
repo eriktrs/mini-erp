@@ -13,7 +13,6 @@
         <option value="pending">Pending</option>
         <option value="processing">Processing</option>
         <option value="completed">Completed</option>
-        <option value="canceled">Canceled</option>
       </select>
     </div>
 
@@ -56,7 +55,7 @@
               <span v-if="item.variation_name" class="text-gray-500">
                 ({{ item.variation_name }})
               </span>
-              - Qty: {{ item.quantity }} - R$
+              - Quantity: {{ item.quantity }} - R$
               {{ (item.price * item.quantity).toFixed(2) }}
             </li>
           </ul>
