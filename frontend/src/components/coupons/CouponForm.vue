@@ -4,16 +4,19 @@
       {{ editMode ? "Edit Coupon" : "Create Coupon" }}
     </h2>
     <form @submit.prevent="$emit('submit')" class="space-y-4">
+      <!-- Coupon Code -->
       <div>
         <label class="block text-gray-700 mb-1">Code</label>
         <input
-          v-model="formData.code"
+          v-model.trim="formData.code"
           type="text"
           class="w-full border px-3 py-2 rounded"
           placeholder="Enter coupon code"
           required
         />
       </div>
+
+      <!-- Discount -->
       <div>
         <label class="block text-gray-700 mb-1">Discount (%)</label>
         <input
@@ -22,35 +25,48 @@
           class="w-full border px-3 py-2 rounded"
           min="1"
           max="100"
+          step="1"
           required
         />
       </div>
+
+      <!-- Minimum Value -->
       <div>
         <label class="block text-gray-700 mb-1">Minimum Value (R$)</label>
         <input
           v-model.number="formData.min_value"
           type="number"
           class="w-full border px-3 py-2 rounded"
+          min="0"
+          step="0.01"
           required
         />
       </div>
+
+      <!-- Valid Until -->
       <div>
         <label class="block text-gray-700 mb-1">Valid Until</label>
         <input
           v-model="formData.valid_until"
           type="date"
           class="w-full border px-3 py-2 rounded"
+          :min="today"
           required
         />
       </div>
+
+      <!-- Buttons -->
       <div class="flex gap-4">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          type="submit"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
           {{ editMode ? "Update" : "Create" }}
         </button>
         <button
           type="button"
           v-if="editMode"
-          class="bg-gray-400 text-white px-4 py-2 rounded"
+          class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
           @click="$emit('cancel')"
         >
           Cancel
@@ -61,22 +77,28 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
-import type { PropType } from "vue";
+import { defineComponent, computed } from "vue";
 
 export default defineComponent({
   name: "CouponForm",
   props: {
     formData: {
-      type: Object as PropType<{
+      type: Object as () => {
         code: string;
         discount: number;
-        minimum_value: number;
+        min_value: number;
         valid_until: string;
-      }>,
+      },
       required: true,
     },
-    editMode: Boolean,
+    editMode: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  setup() {
+    const today = computed(() => new Date().toISOString().split("T")[0]);
+    return { today };
   },
 });
 </script>
