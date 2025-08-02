@@ -29,28 +29,6 @@
         />
       </div>
 
-      <!-- Coupon Input -->
-      <div class="mb-4">
-        <label class="block text-gray-700 mb-1">Coupon (optional)</label>
-        <div class="flex">
-          <input
-            v-model="couponCode"
-            type="text"
-            placeholder="Enter coupon code"
-            class="flex-1 border rounded-l px-3 py-2"
-          />
-          <button
-            @click="applyCoupon"
-            class="bg-blue-500 text-white px-4 rounded-r hover:bg-blue-600"
-          >
-            Apply
-          </button>
-        </div>
-        <p v-if="couponApplied" class="text-green-600 text-sm mt-1">
-          Coupon applied successfully!
-        </p>
-      </div>
-
       <!-- Actions -->
       <div class="flex justify-end gap-2">
         <button
@@ -84,25 +62,12 @@ export default defineComponent({
   setup(props, { emit }) {
     const selectedVariation = ref<string | null>(null);
     const quantity = ref(1);
-    const couponCode = ref("");
-    const couponApplied = ref(false);
 
     const getMaxStock = () => {
       const variation = props.product.variations.find(
         (v: any) => v.id === selectedVariation.value
       );
       return variation ? variation.stock : 1;
-    };
-
-    const applyCoupon = async () => {
-      if (!couponCode.value) return;
-      try {
-        await orderService.applyCoupon(couponCode.value);
-        couponApplied.value = true;
-      } catch (error) {
-        alert("Invalid coupon code");
-        couponApplied.value = false;
-      }
     };
 
     const confirmPurchase = async () => {
@@ -127,9 +92,6 @@ export default defineComponent({
     return {
       selectedVariation,
       quantity,
-      couponCode,
-      couponApplied,
-      applyCoupon,
       confirmPurchase,
       getMaxStock,
     };
