@@ -37,9 +37,6 @@ lerna-debug.log*
 # Docker
 # -----------------------------
 db_data/
-docker/php/000-default.conf
-docker/apache-php.dockerfile
-docker/node.dockerfile
 docker/vhost.conf
 
 # -----------------------------
