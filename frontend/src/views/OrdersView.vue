@@ -106,7 +106,7 @@ const pagination = ref({
   current_page: 1,
   total_pages: 1,
   total_orders: 0,
-  limit: 10,
+  limit: 4,
 });
 
 async function fetchOrders(page = pagination.value.current_page) {
