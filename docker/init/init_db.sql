@@ -44,13 +44,15 @@ CREATE TABLE orders (
     subtotal DECIMAL(10,2),
     shipping DECIMAL(10,2),
     total DECIMAL(10,2),
+    coupon_id INT NULL,
     postal_code VARCHAR(9),
     address TEXT,
     status VARCHAR(50),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (coupon_id) REFERENCES coupon(id) ON DELETE SET NULL
 );
 
--- (Optional) Table for linking products and orders
+-- Table for linking products and orders
 CREATE TABLE order_item (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
@@ -62,3 +64,23 @@ CREATE TABLE order_item (
     FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
     FOREIGN KEY (variation_id) REFERENCES product_variation(id) ON DELETE SET NULL
 );
+
+-- Table for cart items
+CREATE TABLE cart (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    variation_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
+    FOREIGN KEY (variation_id) REFERENCES product_variation(id) ON DELETE CASCADE
+);
+
+-- Table for linking coupons to carts
+CREATE TABLE cart_coupon (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    coupon_id INT NOT NULL,
+    FOREIGN KEY (coupon_id) REFERENCES coupon(id) ON DELETE CASCADE
+);
+
