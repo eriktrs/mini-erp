@@ -84,12 +84,14 @@ $route['coupons/(:num)']['DELETE'] = 'CouponController/delete/$1';      // Delet
 | API Routes - Orders
 |--------------------------------------------------------------------------
 */
-$route['orders/cart']['GET'] = 'OrderController/cart';                            // List orders
-$route['orders/cart']['POST'] = 'OrderController/addToCart';                      // Add Orders
+$route['orders/cart']['GET'] = 'OrderController/cart';                            // List cart items
+$route['orders/cart']['POST'] = 'OrderController/addToCart';                      // Add item to cart
 $route['orders/cart/(:num)']['DELETE'] = 'OrderController/removeFromCart/$1';     // Remove item from cart
+$route['orders/cart/(:num)']['PUT'] = 'OrderController/updateQuantity/$1';        // Update cart item quantity
 $route['orders/coupon']['POST'] = 'OrderController/applyCoupon';                  // Apply coupon to cart
 $route['orders/checkout']['POST'] = 'OrderController/checkout';                   // Checkout and create order
 $route['orders/(:num)']['GET'] = 'OrderController/details/$1';                    // Get order details by ID
+$route['orders']['GET'] = 'OrderController/index';                                 // List all orders
 
 /*
 |--------------------------------------------------------------------------
