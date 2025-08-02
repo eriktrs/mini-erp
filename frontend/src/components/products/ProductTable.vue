@@ -12,11 +12,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="product in products"
-          :key="product.id"
-          class="hover:bg-gray-50"
-        >
+        <tr v-for="product in products" :key="product.id" class="hover:bg-gray-50">
           <td class="px-4 py-2 border">{{ product.id }}</td>
           <td class="px-4 py-2 border">{{ product.name }}</td>
           <td class="px-4 py-2 border">R$ {{ product.price }}</td>
@@ -28,44 +24,71 @@
             </ul>
           </td>
           <td class="px-4 py-2 border text-center">
-            <button
-              @click="$emit('edit', product)"
-              class="text-blue-600 hover:underline mr-2"
-            >
+            <button @click="$emit('edit', product)" class="text-blue-600 hover:underline mr-2">
               Edit
             </button>
-            <button
-              @click="$emit('delete', product.id)"
-              class="text-red-600 hover:underline mr-2"
-            >
+            <button @click="$emit('delete', product.id)" class="text-red-600 hover:underline mr-2">
               Delete
             </button>
-            <button
-              @click="$emit('buy', product)"
-              class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-            >
+            <button @click="openBuyModal(product)" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
               Buy
             </button>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <BuyProductModal
+      :visible="showModal"
+      :product="selectedProduct"
+      @close="showModal = false"
+      @purchased="refreshProducts"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import type { PropType } from "vue";
+import { useProducts } from "../../composables/useProducts";
+import BuyProductModal from "./BuyProductModal.vue";
 
 export default defineComponent({
   name: "ProductTable",
+  components: { BuyProductModal },
   props: {
     products: {
       type: Array as PropType<
-        { id: number; name: string; price: number; variations: { id: number; name: string; stock: number }[] }[]
+        {
+          id: number;
+          name: string;
+          price: number;
+          variations: { id: number; name: string; stock: number }[];
+        }[]
       >,
       required: true,
     },
+  },
+  setup() {
+    const showModal = ref(false);
+    const selectedProduct = ref<any>(null);
+    const { fetchProducts } = useProducts();
+
+    const openBuyModal = (product: any) => {
+      selectedProduct.value = product;
+      showModal.value = true;
+    };
+
+    const refreshProducts = async () => {
+      await fetchProducts();
+    };
+
+    return {
+      showModal,
+      selectedProduct,
+      openBuyModal,
+      refreshProducts,
+    };
   },
 });
 </script>
