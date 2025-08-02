@@ -1,20 +1,44 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
-/**
- * OrderController (REST API)
- *
- * Handles cart operations, order creation, coupon application, and shipping calculation.
- * Returns responses in JSON format following REST API best practices.
- */
 class OrderController extends CI_Controller
 {
     public function __construct()
     {
         parent::__construct();
-        $this->load->model(['Order_model', 'Product_model', 'Coupon_model']);
-        $this->load->helper(['url', 'api']); // Custom API helper
-        $this->load->library(['session']);
+        $this->load->model(['Order_model', 'Cart_model', 'Product_model', 'ProductStock_model', 'Coupon_model']);
+        $this->load->helper(['url', 'api']);
+    }
+
+    /**
+     * GET /orders
+     * List all orders.
+     */
+
+    public function index()
+    {
+        $status = $this->input->get('status');
+        $page = (int) $this->input->get('page') ?: 1;
+        $limit = (int) $this->input->get('limit') ?: 5;
+        $offset = ($page - 1) * $limit;
+
+        $filters = [];
+        if (!empty($status)) {
+            $filters['status'] = $status;
+        }
+
+        $orders = $this->Order_model->get_filtered($filters, $limit, $offset);
+        $totalOrders = $this->Order_model->count_filtered($filters);
+
+        return respondSuccess($this->output, [
+            'orders' => $orders,
+            'pagination' => [
+                'current_page' => $page,
+                'limit' => $limit,
+                'total_orders' => $totalOrders,
+                'total_pages' => ceil($totalOrders / $limit)
+            ]
+        ]);
     }
 
     /**
@@ -23,15 +47,18 @@ class OrderController extends CI_Controller
      */
     public function cart()
     {
-        $cart = $this->session->userdata('cart') ?? [];
-        $subtotal = $this->calculateSubtotal();
+        $cart = $this->Cart_model->getAll();
+        $subtotal = $this->Cart_model->calculateSubtotal();
         $shipping = $this->calculateShipping($subtotal);
-        $total = $subtotal + $shipping;
+        $coupon = $this->Cart_model->getAppliedCoupon();
+        $discount = $coupon ? $coupon['value'] : 0;
+        $total = max(0, $subtotal + $shipping - $discount);
 
         return respondSuccess($this->output, [
             'cart' => $cart,
             'subtotal' => $subtotal,
             'shipping' => $shipping,
+            'discount' => $discount,
             'total' => $total
         ]);
     }
@@ -40,48 +67,63 @@ class OrderController extends CI_Controller
      * POST /orders/cart
      * Add product to cart.
      */
-    public function addToCart() {
-        if ($this->input->method() !== 'post') {
-            return respondError($this->output, 'Method Not Allowed', 405);
-        }
-
+    public function addToCart()
+    {
         $input = json_decode($this->input->raw_input_stream, true);
-
         if (!isset($input['product_id'], $input['variation_id'], $input['qty'])) {
             return respondError($this->output, 'Missing required fields', 400);
         }
 
-        $variationStock = $this->ProductStock_model->get_by_variation($input['variation_id']);
+        $product = $this->Product_model->getById($input['product_id']);
+        if (!$product) {
+            return respondError($this->output, 'Product not found', 404);
+        }
 
+        $variationStock = $this->ProductStock_model->get_by_variation($input['variation_id']);
         if (!$variationStock || $variationStock['quantity'] < $input['qty']) {
             return respondError($this->output, 'Insufficient stock', 400);
         }
 
-        // Deduct stock
-        $this->ProductStock_model->update_quantity($input['variation_id'], $variationStock['quantity'] - $input['qty']);
+        $itemData = [
+            'product_id' => $input['product_id'],
+            'variation_id' => $input['variation_id'],
+            'price' => $product['price'],
+            'quantity' => $input['qty']
+        ];
 
-        // Add to cart
-        $orderId = $this->Order_model->add_item($input['product_id'], $input['variation_id'], $input['qty']);
+        $id = $this->Cart_model->addItem($itemData);
 
-        return respondSuccess($this->output, ['message' => 'Product added to cart', 'order_id' => $orderId]);
+        return respondSuccess($this->output, ['message' => 'Product added to cart', 'id' => $id], 201);
     }
 
     /**
-     * DELETE /orders/cart/{index}
-     * Remove item from cart by index.
+     * DELETE /orders/cart/{id}
+     * Remove cart item by ID.
      */
-    public function removeFromCart($index)
+    public function removeFromCart($id)
     {
-        $cart = $this->session->userdata('cart') ?? [];
-
-        if (!isset($cart[$index])) {
-            return respondError($this->output, 'Item not found in cart', 404);
+        $deleted = $this->Cart_model->removeItem($id);
+        if (!$deleted) {
+            return respondError($this->output, 'Item not found', 404);
         }
+        return respondSuccess($this->output, ['message' => 'Item removed']);
+    }
 
-        unset($cart[$index]);
-        $this->session->set_userdata('cart', array_values($cart));
-
-        return respondSuccess($this->output, ['message' => 'Item removed from cart', 'cart' => $cart]);
+    /**
+     * PUT /orders/cart/{id}
+     * Update quantity for cart item.
+     */
+    public function updateQuantity($id)
+    {
+        $input = json_decode($this->input->raw_input_stream, true);
+        if (!isset($input['qty'])) {
+            return respondError($this->output, 'Missing quantity', 400);
+        }
+        $updated = $this->Cart_model->updateQuantity($id, $input['qty']);
+        if (!$updated) {
+            return respondError($this->output, 'Item not found', 404);
+        }
+        return respondSuccess($this->output, ['message' => 'Quantity updated']);
     }
 
     /**
@@ -98,12 +140,12 @@ class OrderController extends CI_Controller
             return respondError($this->output, 'Invalid coupon code', 400);
         }
 
-        $subtotal = $this->calculateSubtotal();
+        $subtotal = $this->Cart_model->calculateSubtotal();
         if ($subtotal < $coupon['minimum_value']) {
             return respondError($this->output, 'Subtotal does not meet coupon requirements', 400);
         }
 
-        $this->session->set_userdata('coupon', $coupon);
+        $this->Cart_model->applyCoupon($coupon['id']);
 
         return respondSuccess($this->output, ['message' => 'Coupon applied successfully', 'coupon' => $coupon]);
     }
@@ -115,21 +157,20 @@ class OrderController extends CI_Controller
     public function checkout()
     {
         $input = json_decode($this->input->raw_input_stream, true);
-        $cart = $this->session->userdata('cart') ?? [];
+        if (empty($input['postal_code']) || empty($input['address'])) {
+            return respondError($this->output, 'Please provide valid address details', 400);
+        }
+
+        $cart = $this->Cart_model->getAll();
 
         if (empty($cart)) {
             return respondError($this->output, 'Cart is empty', 400);
         }
 
-        if (empty($input['postal_code']) || empty($input['address'])) {
-            return respondError($this->output, 'Please provide valid address details', 400);
-        }
-
-        $subtotal = $this->calculateSubtotal();
+        $subtotal = $this->Cart_model->calculateSubtotal();
         $shipping = $this->calculateShipping($subtotal);
-        $coupon = $this->session->userdata('coupon');
+        $coupon = $this->Cart_model->getAppliedCoupon();
         $discount = $coupon ? $coupon['value'] : 0;
-
         $total = max(0, $subtotal + $shipping - $discount);
 
         $orderData = [
@@ -141,49 +182,35 @@ class OrderController extends CI_Controller
             'status' => 'pending'
         ];
 
-        $orderId = $this->Order_model->insert($orderData, $cart);
+        $orderId = $this->Order_model->insert($orderData);
 
-        $this->session->unset_userdata(['cart', 'coupon']);
+        foreach ($cart as $item) {
 
-        return respondSuccess($this->output, [
-            'message' => 'Order placed successfully',
-            'order_id' => $orderId
-        ], 201);
-    }
+            $itemData = [
+                'product_id' => $item['product_id'],
+                'variation_id' => $item['variation_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price']
+            ];
 
-    /**
-     * GET /orders/{id}
-     * Show order details by ID.
-     */
-    public function details($id)
-    {
-        $order = $this->Order_model->getById($id);
-        if (!$order) {
-            return respondError($this->output, 'Order not found', 404);
+            $this->Order_model->insertItem($orderId, $itemData);
+
+            $variationStock = $this->ProductStock_model->get_by_variation($item['variation_id']);
+            $newQty = max(0, $variationStock['quantity'] - $item['quantity']);
+
+            // Update stock quantity
+            $this->ProductStock_model->decrease_stock($item['variation_id'], $newQty);
         }
 
-        return respondSuccess($this->output, ['order' => $order]);
+        $this->Cart_model->clearCart();
+
+        return respondSuccess($this->output, ['message' => 'Order placed successfully', 'order_id' => $orderId], 201);
     }
 
-    /**
-     * Calculate cart subtotal.
-     */
-    private function calculateSubtotal(): float
-    {
-        $cart = $this->session->userdata('cart') ?? [];
-        return array_reduce($cart, fn($sum, $item) => $sum + ($item['price'] * $item['quantity']), 0);
-    }
-
-    /**
-     * Calculate shipping cost based on subtotal.
-     */
     private function calculateShipping(float $subtotal): float
     {
-        if ($subtotal > 200) {
-            return 0.00;
-        } elseif ($subtotal >= 52 && $subtotal <= 166.59) {
-            return 15.00;
-        }
+        if ($subtotal > 200) return 0.00;
+        if ($subtotal >= 52 && $subtotal <= 166.59) return 15.00;
         return 20.00;
     }
 }
