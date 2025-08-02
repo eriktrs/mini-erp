@@ -9,8 +9,15 @@
         <li>
           <router-link to="/products" class="hover:underline">Products</router-link>
         </li>
-        <li><router-link to="/coupons" class="hover:underline">Coupons</router-link></li>
-        <li><router-link to="/orders" class="hover:underline">Orders</router-link></li>
+        <li>
+          <router-link to="/coupons" class="hover:underline">Coupons</router-link>
+        </li>
+        <li>
+          <router-link to="/cart" class="hover:underline">Cart</router-link>
+        </li>
+        <li>
+          <router-link to="/orders" class="hover:underline">Orders</router-link>
+        </li>
       </ul>
 
       <!-- Mobile Menu Button -->
@@ -36,6 +43,7 @@
     <div v-if="isOpen" class="md:hidden mt-3 space-y-2 bg-blue-700 p-3 rounded">
       <router-link to="/products" class="block hover:underline">Products</router-link>
       <router-link to="/coupons" class="block hover:underline">Coupons</router-link>
+      <router-link to="/cart" class="block hover:underline">Cart</router-link>
       <router-link to="/orders" class="block hover:underline">Orders</router-link>
     </div>
   </nav>
